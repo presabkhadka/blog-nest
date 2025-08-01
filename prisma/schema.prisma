@@ -27,10 +27,14 @@ model User {
   email     String
   password  String
   role      UserRoles
+  Content   Content[]
 }
 
 model Content {
-  id   Int          @id @default(autoincrement())
-  name String       @unique
-  type ContentTypes
+  id       Int          @id @default(autoincrement())
+  name     String       @unique
+  type     ContentTypes
+  authorId Int
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }

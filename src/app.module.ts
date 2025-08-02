@@ -9,4 +9,4 @@ import { ContentsModule } from './contents/contents.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

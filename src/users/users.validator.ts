@@ -7,7 +7,7 @@ export const userSignupValidator = z.object({
   lastname: z.string().min(1, 'lastname is required'),
   email: z.email(),
   password: z.string().min(8).max(12),
-  role: z.enum(roles),
+  role: z.enum(roles).optional(),
 });
 
 export const userLoginValidator = z.object({

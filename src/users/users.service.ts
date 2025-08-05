@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { userLoginValidator, userSignupValidator } from './users.validator';
 import bcrypt from 'bcrypt';
@@ -11,8 +13,8 @@ const prisma = new PrismaClient();
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly jwtService: JwtService) { }
-  async signup(data: any) {
+  constructor(private readonly jwtService: JwtService) {}
+  async signup(data: any): Promise<{ message: string; data: any }> {
     const parsedData = userSignupValidator.safeParse(data);
     if (!parsedData.success) {
       throw new BadRequestException('Validation failed');
@@ -24,9 +26,7 @@ export class UsersService {
     });
 
     if (userExists) {
-      return {
-        message: 'User with this email id already exists',
-      };
+      throw new BadRequestException('User with this mail already exists');
     }
     const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
     const newUser = await prisma.user.create({
@@ -45,35 +45,52 @@ export class UsersService {
     };
   }
 
-  async login(data: any) {
-    const parsedData = userLoginValidator.safeParse(data);
-    if (!parsedData.success) {
-      throw new BadRequestException('Validation failed');
-    }
+  async login(data: any): Promise<{ message: string; token: string }> {
+    try {
+      const parsedData = userLoginValidator.safeParse(data);
+      if (!parsedData.success) {
+        throw new BadRequestException('validation failed');
+      }
 
-    const userExists = await prisma.user.findFirst({
-      where: {
-        email: parsedData.data.email,
-      },
-    });
+      const userExists = await prisma.user.findFirst({
+        where: {
+          email: parsedData.data.email,
+        },
+      });
 
-    if (!userExists) {
-      throw new NotFoundException('User with this email not found');
-    }
+      if (!userExists) {
+        throw new NotFoundException('No user with such email found');
+      }
 
-    const passwordValid = await bcrypt.compare(
-      parsedData.data.password,
-      userExists.password,
-    );
-    if (!passwordValid) {
-      throw new BadRequestException('Password doesnt match');
+      const passwordMatch = await bcrypt.compare(
+        parsedData.data.password,
+        userExists.password,
+      );
+
+      if (!passwordMatch) {
+        throw new UnauthorizedException(
+          'Invalid credentials, Please try again',
+        );
+      }
+      const payload = { email: parsedData.data.email };
+
+      const token = await this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_SECRET,
+      });
+      console.log(token);
+
+      return {
+        message: 'Logged in successfully',
+        token,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      throw new InternalServerErrorException(
+        'Soemthing went wrong with the server',
+      );
     }
-    const token = await this.jwtService.signAsync({
-      email: parsedData.data.email,
-    });
-    return {
-      message: 'Logged in successfully',
-      token,
-    };
   }
 }

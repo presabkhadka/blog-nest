@@ -9,7 +9,6 @@ export const createContentValidator = z.object({
 });
 
 export const updateContentValidator = z.object({
-  id: z.uuid({ version: 'v4' }),
   name: z.string().min(1, 'Content name must be provided').optional(),
   type: z.enum(types).optional(),
 });

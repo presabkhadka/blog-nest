@@ -1,12 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma';
+
 const prisma = new PrismaClient();
 
 @Injectable()
 export class ContentsService {
-  async create(data: any) {
+  constructor() { }
+
+  getRepository() {
+    return prisma.content;
+  }
+
+  async create(body: any) {
     return await prisma.content.create({
-      ...data,
+      data: {
+        ...body,
+      },
     });
   }
 
@@ -14,21 +23,21 @@ export class ContentsService {
     return await prisma.content.findMany({});
   }
 
-  async findOne(id: number) {
+  async findOne(name: string) {
     return await prisma.content.findFirst({
       where: {
-        id: id,
+        name,
       },
     });
   }
 
-  async update(id: number, data: { name?: string; type?: any }) {
+  async update(id: number, body: { name?: string; type?: any }) {
     return await prisma.content.update({
       where: {
         id: id,
       },
       data: {
-        ...data,
+        ...body,
       },
     });
   }
